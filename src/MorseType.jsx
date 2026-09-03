@@ -1,6 +1,9 @@
-import { useState } from "react"
+import { useState, useRef, useEffect } from "react"
+
+import { getRandomParagraph } from "./sampleText"
 
 import clsx from "clsx"
+import { useStopwatch } from "./hooks/useStopwatch"
 
 const MORSE_DICT = {
   "A": ".-",     "B": "-...",   "C": "-.-.",   "D": "-..",
@@ -78,11 +81,22 @@ function TargetChar({ char, isCorrect }) {
   return <span className={clsx("whitespace-pre", isCorrect === undefined ? "text-gray-400" : (isCorrect ? "text-black" : "text-red-500"))}>{char}</span>
 }
 
+
+function Stopwatch({ msElapsed }) {
+  const sec = Math.floor((msElapsed / 1000) % 60).toString().padStart(2, "0")
+  const min = Math.floor((msElapsed / (1000 * 60))).toString().padStart(2, "0")
+  const ms = Math.floor((msElapsed / 10) % 100).toString().padStart(2, "0")
+
+  return (
+    <div className="text-6xl">
+      {min}:{sec}<span className="text-4xl">.{ms}</span>
+    </div>
+  )
+}
+
 function TypingDisplay({ targetWords, pastWords, currWord, currLetter }) {
   const morseLine = [];
   const targetLine = [];
-
-  // TODO ignores all morse past target words
 
   // pastWords
   for (let i = 0; i < Math.min(pastWords.length, targetWords.length); i++) {
@@ -91,11 +105,11 @@ function TypingDisplay({ targetWords, pastWords, currWord, currLetter }) {
         morseLine.push(<MorseChar char={letter} isCorrect={false} />)
       }
       else if (toMorse(targetWords[i][j]) === letter) {
-        morseLine.push(<MorseChar char={letter} isCorrect={true} />)
+        morseLine.push(<MorseChar char={toDisplay(letter)} isCorrect={true} />)
         targetLine.push(<TargetChar char={targetWords[i][j]} isCorrect={true} />)
       }
       else {
-        morseLine.push(<MorseChar char={letter} isCorrect={false} />)
+        morseLine.push(<MorseChar char={toDisplay(letter)} isCorrect={false} />)
         targetLine.push(<TargetChar char={targetWords[i][j]} isCorrect={false} />)
       }
       morseLine.push(<MorseChar char={" "} isCorrect={true} />)
@@ -113,14 +127,14 @@ function TypingDisplay({ targetWords, pastWords, currWord, currLetter }) {
   if (currWord != "") {
     for (const [i, letter] of currWord.split(" ").entries()) {
       if (i >= targetWords[pastWords.length].length) {
-        morseLine.push(<MorseChar char={letter} isCorrect={false} />)
+        morseLine.push(<MorseChar char={toDisplay(letter)} isCorrect={false} />)
       }
       else if (toMorse(targetWords[pastWords.length][i]) === letter) {
-        morseLine.push(<MorseChar char={letter} isCorrect={true} />)
+        morseLine.push(<MorseChar char={toDisplay(letter)} isCorrect={true} />)
         targetLine.push(<TargetChar char={targetWords[pastWords.length][i]} isCorrect={true} />)
       }
       else {
-        morseLine.push(<MorseChar char={letter} isCorrect={false} />)
+        morseLine.push(<MorseChar char={toDisplay(letter)} isCorrect={false} />)
         targetLine.push(<TargetChar char={targetWords[pastWords.length][i]} isCorrect={false} />)
       }
       morseLine.push(<MorseChar char=" " />)
@@ -132,7 +146,7 @@ function TypingDisplay({ targetWords, pastWords, currWord, currLetter }) {
   }
 
   // currLetter
-  morseLine.push(<MorseChar char={currLetter} />)
+  morseLine.push(<MorseChar char={toDisplay(currLetter)} />)
 
   targetLine.push(<TargetChar char={" " + targetWords.slice(pastWords.length+1).join(" ")} />)
 
@@ -153,10 +167,25 @@ function TypingDisplay({ targetWords, pastWords, currWord, currLetter }) {
 }
 
 export default function MorseType() {
-  const [targetWords, setTargetWords] = useState("hello i am in english not morse code but you will need to type me in morse code".split(" "))
+  // Tracks whether the game is focused, must be focused to handle input
+  const [focused, setFocused] = useState(false)
+  // Ref to the main game div, use to track focus
+  const gameRef = useRef(null)
+
+  // Game data
+  const [finished, setFinished] = useState(false)
+  const { elapsed, running, start, stop, reset } = useStopwatch();
+
+  const [targetWords, setTargetWords] = useState(getRandomParagraph().split(" "))
   const [pastWords, setPastWords] = useState([])
   const [currWord, setCurrWord] = useState("")
   const [currLetter, setCurrLetter] = useState("")
+
+
+  // Auto-focus on mount
+  useEffect(() => {
+    gameRef.current?.focus({ preventScroll: true })
+  }, [])
 
   function handleNewLetter() {
     if (currLetter === "") return
@@ -172,6 +201,11 @@ export default function MorseType() {
 
   function handleNewWord() {
     if (currWord === "" && currLetter === "") return
+
+    // finished all targetWords (ignores correctness)
+    if (pastWords.length + 1 >= targetWords.length) {
+      handleFinish()
+    }
 
     let newWord = currWord
     // Include current letter in new word
@@ -220,12 +254,24 @@ export default function MorseType() {
     }
   }
 
+  function handleFinish() {
+    stop()
+    setFinished(true)
+  }
+
   function handleKeyDown(e) {
     // Prevent default behavior
     if ([".", "-", "/", " ", "Backspace"].includes(e.key) && !e.metaKey && !e.ctrlKey && !e.altKey) {
       e.preventDefault()
     }
     else return
+
+    if (finished) return
+
+    // Start timer
+    if (pastWords.length === 0 && currWord.length === 0 && currLetter.length === 0 && !running) {
+      start()
+    }
     
     // Continue curr letter
     if (e.key === "." || e.key === "-") {
@@ -240,10 +286,19 @@ export default function MorseType() {
   return (
     <div
       tabIndex={0}
+      ref={gameRef}
+      onFocus={() => setFocused(true)}
+      onBlur={() => setFocused(false)}
       onKeyDown={handleKeyDown}
       className="w-full h-full flex flex-col gap-20 justify-center items-center overflow-hidden font-mono"
     >
-      <TypingDisplay targetWords={targetWords} pastWords={pastWords} currWord={currWord} currLetter={currLetter} />
+      <Stopwatch msElapsed={elapsed} />
+      <TypingDisplay
+        targetWords={targetWords}
+        pastWords={pastWords}
+        currWord={currWord}
+        currLetter={currLetter}
+      />
       <DictKeyboard />
     </div>
   )
