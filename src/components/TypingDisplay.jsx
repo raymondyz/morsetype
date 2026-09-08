@@ -14,6 +14,8 @@ export default function TypingDisplay({ targetWords, pastWords, currWord, currLe
   const morseLine = [];
   const targetLine = [];
 
+  // BUG: extra submitted letters past the end of the word are not processed
+
   // pastWords
   for (let i = 0; i < Math.min(pastWords.length, targetWords.length); i++) {
     for (const [j, letter] of pastWords[i].split(" ").entries()) {

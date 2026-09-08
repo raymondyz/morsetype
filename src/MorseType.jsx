@@ -4,6 +4,7 @@ import { getRandomParagraph } from "./sampleText"
 import TypingDisplay from "./components/TypingDisplay"
 import Stopwatch from "./components/Stopwatch"
 import DictKeyboard from "./components/DictKeyboard"
+import ResultScreen from "./components/ResultScreen"
 
 import clsx from "clsx"
 import { useStopwatch } from "./hooks/useStopwatch"
@@ -28,6 +29,18 @@ export default function MorseType() {
   useEffect(() => {
     gameRef.current?.focus({ preventScroll: true })
   }, [])
+
+  function handleNewGame() {
+    setFinished(false)
+    reset()
+    setTargetWords(getRandomParagraph().split(" "))
+    setPastWords([])
+    setCurrWord("")
+    setCurrLetter("")
+
+    // Re-focus
+    gameRef.current?.focus({ preventScroll: true })
+  }
 
   function handleNewLetter() {
     if (currLetter === "") return
@@ -132,7 +145,7 @@ export default function MorseType() {
       onFocus={() => setFocused(true)}
       onBlur={() => setFocused(false)}
       onKeyDown={handleKeyDown}
-      className="w-full h-full flex flex-col gap-20 justify-center items-center overflow-hidden font-mono"
+      className="relative w-full h-full flex flex-col gap-20 justify-center items-center overflow-hidden font-mono"
     >
       <Stopwatch msElapsed={elapsed} />
       <TypingDisplay
@@ -142,6 +155,7 @@ export default function MorseType() {
         currLetter={currLetter}
       />
       <DictKeyboard />
+      {finished && <ResultScreen targetWords={targetWords} submittedWords={pastWords} msElapsed={elapsed} handleNewGame={handleNewGame} />}
     </div>
   )
 }

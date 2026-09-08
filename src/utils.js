@@ -39,3 +39,11 @@ export function toMorse(word) {
 export function toDisplay(morse) {
   return morse.replaceAll(".", "•")
 }
+
+export function formatTime(msElapsed) {
+  const sec = Math.floor((msElapsed / 1000) % 60).toString().padStart(2, "0")
+  const min = Math.floor((msElapsed / (1000 * 60))).toString().padStart(2, "0")
+  const ms = Math.floor((msElapsed / 10) % 100).toString().padStart(2, "0")
+
+  return { sec, min, ms }
+}
