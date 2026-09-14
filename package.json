@@ -5,10 +5,15 @@
   "type": "module",
   "files": [
     "dist",
+    "index.d.ts",
     "tailwind.css"
   ],
+  "types": "./index.d.ts",
   "exports": {
-    ".": "./dist/morsetype.js",
+    ".": {
+      "types": "./index.d.ts",
+      "default": "./dist/morsetype.js"
+    },
     "./tailwind.css": "./tailwind.css"
   },
   "scripts": {
@@ -19,12 +24,11 @@
     "preview": "vite preview"
   },
   "peerDependencies": {
-    "react": "^19.0.0"
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
   },
   "dependencies": {
-    "clsx": "^2.1.1",
-    "react": "^19.2.8",
-    "react-dom": "^19.2.8"
+    "clsx": "^2.1.1"
   },
   "devDependencies": {
     "@babel/core": "^7.29.7",
@@ -39,6 +43,8 @@
     "eslint-plugin-react-hooks": "^7.1.1",
     "eslint-plugin-react-refresh": "^0.5.3",
     "globals": "^17.7.0",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
     "tailwindcss": "^4.3.3",
     "vite": "^8.2.0"
   }
